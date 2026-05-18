@@ -1,7 +1,7 @@
 from .fair_value import FairValueConfig, FairValueProcess
 from .market_state import MarketState
 from .metrics import SimulationMetrics
-from .market_simulation import MarketSimulation, SimulationConfig
+from .market_simulation import MarketSimulation
 
 __all__ = [
     "FairValueConfig",
@@ -9,5 +9,4 @@ __all__ = [
     "MarketState",
     "SimulationMetrics",
     "MarketSimulation",
-    "SimulationConfig",
 ]
