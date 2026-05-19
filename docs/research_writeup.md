@@ -1,6 +1,6 @@
 # Regime-Aware Adaptive Market Making Under Volatility State Transitions
 
-**Ajitesh Mukherjee**
+**Ajitesh Mishra**
 
 ---
 
