@@ -188,7 +188,7 @@ class MarketSimulation:
                 all_orders.extend((agent, o) for o in proposed)
 
                 # Collect cancels from noise traders
-                if isinstance(agent, NoiseTrader):
+                if hasattr(agent, "flush_cancels"):
                     cancel_ids.extend(agent.flush_cancels())
 
             # ── 3. Process cancellations ───────────────────────────────
