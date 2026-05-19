@@ -30,7 +30,8 @@ Agent simulation overview. Six-panel figure showing:
 - Trade price distribution
 Demonstrates that noise traders generate realistic two-sided flow and that midprice converges toward fair value through informed trader activity.
 
-### phase3_demo_output.png
+### Phase 3 — Inventory-Aware Market Making
+![Phase 3 Dashboard](docs/figures/phase3_demo_output.png)
 Naive MM vs Inventory-Aware MM comparison. Five-panel figure:
 - Quote midpoints vs fair value
 - Inventory trajectories (NMM variance >> IAMM variance)
@@ -39,7 +40,8 @@ Naive MM vs Inventory-Aware MM comparison. Five-panel figure:
 - Cumulative fills as maker
 Shows that IAMM reduces inventory variance by ~97% relative to NMM but at the cost of reduced fill income.
 
-### phase4_demo_output.png
+### Phase 4 — Avellaneda-Stoikov Market Maker
+![Phase 4 Dashboard](docs/figures/phase4_demo_output.png)
 Avellaneda-Stoikov vs static strategies. Eight-panel figure:
 - Price + quote midpoints
 - Rolling σ̂ estimate
@@ -50,7 +52,8 @@ Avellaneda-Stoikov vs static strategies. Eight-panel figure:
 - Reservation price vs midprice (inventory adjustment visible)
 Shows that A-S achieves better Sharpe by jointly optimizing spread and skew.
 
-### phase5_demo_output.png
+### Phase 5 — Regime-Aware Market Making
+![Phase 5 Dashboard](docs/figures/phase5_demo_output.png)
 Regime-Aware ASMM in volatile market. Nine-panel dashboard:
 - Price discovery with regime-colored background (green=LOW, blue=MEDIUM, orange=HIGH, red=EXTREME)
 - σ̂ with regime threshold lines
