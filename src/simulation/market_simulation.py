@@ -2,38 +2,6 @@
 src/simulation/market_simulation.py
 -------------------------------------
 MarketSimulation — the core event-driven simulation environment.
-
-Architecture
-------------
-Each timestep proceeds in this exact order:
-
-    1. FAIR VALUE STEP    — advance the latent fair value process
-    2. AGENT ACT          — each agent observes MarketState and returns orders
-    3. CANCEL FLUSH       — process any cancellations agents requested
-    4. ORDER SUBMISSION   — submit each returned order to the matching engine
-    5. FILL NOTIFICATION  — notify agents of any fills from their orders
-    6. METRICS RECORD     — snapshot the book state into SimulationMetrics
-    7. STATE UPDATE       — build the MarketState for the next timestep
-
-The simulation is intentionally minimal:
-- No async, no threads.
-- Agents are called sequentially (order randomized each tick to prevent bias).
-- No look-ahead: agents only see the state BEFORE their orders are processed.
-
-This matches a synchronous batch auction model. For a continuous model you
-would interleave individual agents rather than batching them per tick —
-that is a Phase 7 extension.
-
-Usage
------
-    sim = MarketSimulation(
-        agents=[NoiseTrader("NT1"), NoiseTrader("NT2"), InformedTrader("IT1")],
-        n_steps=500,
-        fair_value_config=FairValueConfig(volatility=0.05, jump_prob=0.03),
-        random_seed=42,
-    )
-    result = sim.run()
-    df = result.metrics.to_dataframe()
 """
 
 from __future__ import annotations
@@ -46,7 +14,6 @@ from ..exchange.matching_engine import MatchingEngine
 from ..exchange.order import OrderSide
 from ..exchange.trade import Trade
 from ..agents.base_agent import BaseAgent
-from ..agents.noise_trader import NoiseTrader
 from .fair_value import FairValueConfig, FairValueProcess
 from .market_state import MarketState
 from .metrics import SimulationMetrics
@@ -63,55 +30,43 @@ class SimulationResult:
     n_steps: int
 
     def summary(self) -> str:
-    """Return a human-readable simulation summary."""
-    df = self.metrics.to_dataframe()
-    if df.empty:
-        return "No data recorded."
+        """Return a human-readable simulation summary."""
+        df = self.metrics.to_dataframe()
+        if df.empty:
+            return "No data recorded."
 
-    total_trades = df["cumulative_trades"].iloc[-1]
-    total_vol    = df["cumulative_volume"].iloc[-1]
-    mean_spread  = df["spread"].mean()
-    mean_imb     = df["order_imbalance"].mean()
+        total_trades = df["cumulative_trades"].iloc[-1]
+        total_vol    = df["cumulative_volume"].iloc[-1]
+        mean_spread  = df["spread"].mean()
+        mean_imb     = df["order_imbalance"].mean()
 
-    lines = [
-        "=" * 55,
-        "  SIMULATION SUMMARY",
-        "=" * 55,
-        f"  Steps run          : {self.n_steps}",
-        f"  Total trades       : {int(total_trades)}",
-        f"  Total volume       : {total_vol:.2f}",
-        f"  Mean spread        : {mean_spread:.4f}",
-        f"  Mean imbalance     : {mean_imb:.4f}" if mean_imb is not None else "",
-        f"  Fair value jumps   : {len(self.jump_steps)}",
-        f"  Agents             : {len(self.agents)}",
-        "-" * 55,
-    ]
-    for agent in self.agents:
-        m = agent.metrics
-        lines.append(
-            f"  {agent.agent_id:<14} inv={m.inventory:+.2f}  "
-            f"pnl={m.total_pnl:+.2f}  trades={getattr(m, 'trades_executed', getattr(m, 'fills_as_maker', 0))}"
-        )
-    lines.append("=" * 55)
-    return "\n".join(lines)
+        lines = [
+            "=" * 55,
+            "  SIMULATION SUMMARY",
+            "=" * 55,
+            f"  Steps run          : {self.n_steps}",
+            f"  Total trades       : {int(total_trades)}",
+            f"  Total volume       : {total_vol:.2f}",
+            f"  Mean spread        : {mean_spread:.4f}",
+            f"  Mean imbalance     : {mean_imb:.4f}" if mean_imb is not None else "",
+            f"  Fair value jumps   : {len(self.jump_steps)}",
+            f"  Agents             : {len(self.agents)}",
+            "-" * 55,
+        ]
+        for agent in self.agents:
+            m = agent.metrics
+            lines.append(
+                f"  {agent.agent_id:<14} inv={m.inventory:+.2f}  "
+                f"pnl={m.total_pnl:+.2f}  "
+                f"trades={getattr(m, 'trades_executed', getattr(m, 'fills_as_maker', 0))}"
+            )
+        lines.append("=" * 55)
+        return "\n".join(lines)
+
 
 class MarketSimulation:
     """
     Event-driven market simulation with pluggable agents.
-
-    Parameters
-    ----------
-    agents : list[BaseAgent]
-        All participants. Order of submission is randomised each tick.
-    n_steps : int
-        Number of simulation timesteps to run.
-    fair_value_config : FairValueConfig, optional
-        Configuration for the fair value process. Default used if None.
-    depth_levels : int
-        Number of price levels to snapshot for metrics/MarketState.
-    random_seed : int, optional
-        Master seed. Each agent and the fair value process derive
-        their own seeds from this for full reproducibility.
     """
 
     def __init__(
@@ -132,49 +87,32 @@ class MarketSimulation:
         self.depth_levels = depth_levels
         self._rng = random.Random(random_seed)
 
-        # Build the matching engine fresh
         self.engine = MatchingEngine()
 
-        # Fair value process
         self._fv_process = FairValueProcess(
             config=fair_value_config or FairValueConfig(),
             random_seed=self._rng.randint(0, 2**31),
         )
 
-        # Metrics collector
         self._metrics = SimulationMetrics()
-
-        # Map agent_id → agent for fast fill routing
         self._agent_map: Dict[str, BaseAgent] = {a.agent_id: a for a in agents}
-
-        # Cache: order_id → agent_id (so we can route fills back)
         self._order_owner: Dict[str, str] = {}
-
         self._ran = False
 
-    # ------------------------------------------------------------------
-    # Main entry point
-    # ------------------------------------------------------------------
-
     def run(self) -> SimulationResult:
-        """
-        Execute the full simulation and return a SimulationResult.
-
-        Raises RuntimeError if called more than once (use a fresh instance).
-        """
+        """Execute the full simulation and return a SimulationResult."""
         if self._ran:
             raise RuntimeError("Simulation already run. Create a new instance.")
         self._ran = True
 
-        # Build the initial MarketState (book is empty, no fair value step yet)
         current_fv = self._fv_process.value
         state = self._build_state(0, current_fv, trades_this_step=[], volume=0.0)
 
         for t in range(1, self.n_steps + 1):
-            # ── 1. Advance fair value ──────────────────────────────────
+            # 1. Advance fair value
             current_fv = self._fv_process.step()
 
-            # ── 2. Agents decide (in random order to prevent bias) ─────
+            # 2. Agents decide (random order to prevent bias)
             agent_order = list(self.agents)
             self._rng.shuffle(agent_order)
 
@@ -182,47 +120,40 @@ class MarketSimulation:
             cancel_ids: List[str] = []
 
             for agent in agent_order:
-                # Update state's fair_value for each agent call
-                # (all agents see the same state snapshot per tick)
                 proposed = agent.act(state)
                 all_orders.extend((agent, o) for o in proposed)
 
-                # Collect cancels from noise traders
+                # Collect cancels from any agent that manages resting orders
                 if hasattr(agent, "flush_cancels"):
                     cancel_ids.extend(agent.flush_cancels())
 
-            # ── 3. Process cancellations ───────────────────────────────
+            # 3. Process cancellations
             for oid in cancel_ids:
                 self.engine.cancel(oid)
-                # Remove from owner map
                 self._order_owner.pop(oid, None)
 
-            # ── 4. Submit orders & collect trades ─────────────────────
+            # 4. Submit orders & collect trades
             trades_this_step: List[Trade] = []
 
             for (agent, order) in all_orders:
-                # Register order ownership BEFORE submitting
                 self._order_owner[order.order_id] = agent.agent_id
-
                 try:
                     new_trades = self.engine.submit(order)
                 except ValueError:
-                    # Duplicate id or other validation error — skip
                     continue
-
                 trades_this_step.extend(new_trades)
 
-            # ── 5. Route fills back to agents ──────────────────────────
+            # 5. Route fills back to agents
             for trade in trades_this_step:
                 self._notify_agents(trade)
 
-            # ── 6. Update unrealised PnL for all agents ────────────────
+            # 6. Update unrealised PnL for all agents
             mid = self.engine.book.midprice
             if mid is not None:
                 for agent in self.agents:
                     agent.update_unrealized_pnl(mid)
 
-            # ── 7. Record metrics ──────────────────────────────────────
+            # 7. Record metrics
             volume_this_step = sum(tr.quantity for tr in trades_this_step)
             bids_snap, asks_snap = self.engine.book.depth_snapshot(self.depth_levels)
             bid_depth_total = sum(q for _, q in bids_snap)
@@ -242,7 +173,7 @@ class MarketSimulation:
                 book_depth_asks=ask_depth_total,
             )
 
-            # ── 8. Build next state snapshot ───────────────────────────
+            # 8. Build next state snapshot
             last_trade = trades_this_step[-1] if trades_this_step else None
             state = self._build_state(
                 t,
@@ -260,10 +191,6 @@ class MarketSimulation:
             agents=self.agents,
             n_steps=self.n_steps,
         )
-
-    # ------------------------------------------------------------------
-    # Internal helpers
-    # ------------------------------------------------------------------
 
     def _notify_agents(self, trade: Trade) -> None:
         """Route fill notifications to maker and taker agents."""
