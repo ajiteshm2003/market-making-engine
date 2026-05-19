@@ -28,27 +28,28 @@ from .regime import (
 )
 
 __all__ = [
-    # A-S math
     "compute_quotes",
     "optimal_half_spread",
     "reservation_price",
     "sensitivity_analysis",
     "spread_decomposition",
     "implied_k_from_spread",
-    # Estimators
     "ArrivalIntensityConfig",
     "ArrivalIntensityEstimator",
     "RollingVolatilityEstimator",
     "VolatilityConfig",
-    # Analytics
     "max_drawdown",
     "print_comparison",
     "sharpe_ratio",
     "strategy_comparison",
-    # Regime
     "VolatilityRegime",
     "RegimeThresholds",
     "RegimeClassifier",
     "RegimeParameters",
     "RegimeTransitionEvent",
 ]
+'''
+with open('src/models/__init__.py', 'w') as f:
+    f.write(content)
+print("models __init__ fixed")
+!head -3 src/models/__init__.py
