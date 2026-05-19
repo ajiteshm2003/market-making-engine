@@ -148,3 +148,18 @@ Demo result:
 - NMM Sharpe: +0.42
 - IAMM Sharpe: -1.17
 - ASMM achieved best PnL and lowest max drawdown
+
+- ## Phase 5: Regime-Aware Market Making Complete
+
+Implemented:
+- Volatility regime classifier
+- LOW / MEDIUM / HIGH / EXTREME regime detection
+- Regime-aware Avellaneda-Stoikov market maker
+- Dynamic gamma, spread, quote size, and inventory-limit adjustment
+- PnL-by-regime and drawdown analysis
+
+Validation:
+- 327/327 tests passing
+
+Key result:
+- Regime-aware ASMM reduced max drawdown to 17.9 vs 450.9 for naive market making in an extreme-volatility simulation
