@@ -63,36 +63,37 @@ class SimulationResult:
     n_steps: int
 
     def summary(self) -> str:
-        """Return a human-readable simulation summary."""
-        lines = [
-            "MarketSimulationResult",
-            f"  steps={len(self.metrics.records)}",
-            f"  trades={len(self.trade_log)}",
-            f"  agents={len(self.agents)}",
-            "",
-            "Agent summary:",
-        ]
+    """Return a human-readable simulation summary."""
+    df = self.metrics.to_dataframe()
+    if df.empty:
+        return "No data recorded."
 
-        for agent in self.agents:
-            m = agent.metrics
+    total_trades = df["cumulative_trades"].iloc[-1]
+    total_vol    = df["cumulative_volume"].iloc[-1]
+    mean_spread  = df["spread"].mean()
+    mean_imb     = df["order_imbalance"].mean()
 
-            inventory = getattr(m, "inventory", 0.0)
-            total_pnl = getattr(m, "total_pnl", 0.0)
-
-            trades = getattr(
-                m,
-                "trades_executed",
-                getattr(m, "fills_as_maker", 0),
-            )
-
-            lines.append(
-                f"  {agent.agent_id:<14} "
-                f"inv={inventory:+.2f}  "
-                f"pnl={total_pnl:+.2f}  "
-                f"trades={trades}"
-            )
-
-        return "\n".join(lines)
+    lines = [
+        "=" * 55,
+        "  SIMULATION SUMMARY",
+        "=" * 55,
+        f"  Steps run          : {self.n_steps}",
+        f"  Total trades       : {int(total_trades)}",
+        f"  Total volume       : {total_vol:.2f}",
+        f"  Mean spread        : {mean_spread:.4f}",
+        f"  Mean imbalance     : {mean_imb:.4f}" if mean_imb is not None else "",
+        f"  Fair value jumps   : {len(self.jump_steps)}",
+        f"  Agents             : {len(self.agents)}",
+        "-" * 55,
+    ]
+    for agent in self.agents:
+        m = agent.metrics
+        lines.append(
+            f"  {agent.agent_id:<14} inv={m.inventory:+.2f}  "
+            f"pnl={m.total_pnl:+.2f}  trades={getattr(m, 'trades_executed', getattr(m, 'fills_as_maker', 0))}"
+        )
+    lines.append("=" * 55)
+    return "\n".join(lines)
 
 class MarketSimulation:
     """
