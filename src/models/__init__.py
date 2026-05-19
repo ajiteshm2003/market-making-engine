@@ -48,8 +48,3 @@ __all__ = [
     "RegimeParameters",
     "RegimeTransitionEvent",
 ]
-'''
-with open('src/models/__init__.py', 'w') as f:
-    f.write(content)
-print("models __init__ fixed")
-!head -3 src/models/__init__.py
