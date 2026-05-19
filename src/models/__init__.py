@@ -1,31 +1,54 @@
 """
-src/strategies/__init__.py
-Public API for the strategies package.
+src/models/__init__.py
+Public API for the models package.
 """
 
-from .base_market_maker import BaseMarketMaker
-from .inventory_aware_market_maker import InventoryAwareMarketMaker
-from .mm_metrics import MarketMakerMetrics, MMStepRecord
-from .naive_market_maker import NaiveMarketMaker
-from .avellaneda_stoikov_market_maker import (
-    AvellanedaStoikovMarketMaker,
-    ASConfig,
-    HorizonMode,
+from .avellaneda_stoikov_math import (
+    compute_quotes,
+    optimal_half_spread,
+    reservation_price,
+    sensitivity_analysis,
+    spread_decomposition,
+    implied_k_from_spread,
 )
-from .regime_aware_as_market_maker import (
-    RegimeAwareAvellanedaStoikovMarketMaker,
-    RegimeAwareASConfig,
+from .arrival_intensity import ArrivalIntensityConfig, ArrivalIntensityEstimator
+from .volatility import RollingVolatilityEstimator, VolatilityConfig
+from .analytics import (
+    max_drawdown,
+    print_comparison,
+    sharpe_ratio,
+    strategy_comparison,
+)
+from .regime import (
+    VolatilityRegime,
+    RegimeThresholds,
+    RegimeClassifier,
+    RegimeParameters,
+    RegimeTransitionEvent,
 )
 
 __all__ = [
-    "BaseMarketMaker",
-    "InventoryAwareMarketMaker",
-    "MarketMakerMetrics",
-    "MMStepRecord",
-    "NaiveMarketMaker",
-    "AvellanedaStoikovMarketMaker",
-    "ASConfig",
-    "HorizonMode",
-    "RegimeAwareAvellanedaStoikovMarketMaker",
-    "RegimeAwareASConfig",
+    # A-S math
+    "compute_quotes",
+    "optimal_half_spread",
+    "reservation_price",
+    "sensitivity_analysis",
+    "spread_decomposition",
+    "implied_k_from_spread",
+    # Estimators
+    "ArrivalIntensityConfig",
+    "ArrivalIntensityEstimator",
+    "RollingVolatilityEstimator",
+    "VolatilityConfig",
+    # Analytics
+    "max_drawdown",
+    "print_comparison",
+    "sharpe_ratio",
+    "strategy_comparison",
+    # Regime
+    "VolatilityRegime",
+    "RegimeThresholds",
+    "RegimeClassifier",
+    "RegimeParameters",
+    "RegimeTransitionEvent",
 ]
