@@ -111,3 +111,21 @@ Implemented:
 
 Validation:
 - 102/102 tests passing
+
+- ## Phase 3: Market Making Strategies Complete
+
+Implemented:
+- Naive market maker
+- Inventory-aware market maker
+- Quote cancellation/reposting
+- Inventory, cash, realized/unrealized PnL tracking
+- Spread capture and fill metrics
+- Strategy comparison demo
+
+Validation:
+- 159/159 tests passing
+
+Demo result:
+- Inventory variance reduced from 342.8 to 10.6
+- IAMM improved PnL by 26.19 versus NMM
+- Bid/ask fill ratio improved from 0.65 to 1.00
