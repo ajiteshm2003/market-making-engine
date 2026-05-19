@@ -89,7 +89,9 @@ class SimulationResult:
             m = agent.metrics
             lines.append(
                 f"  {agent.agent_id:<14} inv={m.inventory:+.2f}  "
-                f"pnl={m.total_pnl:+.2f}  trades={m.trades_executed}"
+                trades = getattr(m, "trades_executed", getattr(m, "fills_as_maker", 0))
+                pnl = getattr(m, "total_pnl", 0.0)
+                lines.append(f"{agent_id}: pnl={pnl:+.2f}  trades={trades}")
             )
         lines.append("=" * 55)
         return "\n".join(lines)
