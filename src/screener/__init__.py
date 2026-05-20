@@ -10,3 +10,12 @@ __all__ = [
     "Scorer", "ScoredTicker", "WEIGHTS",
     "save_csv", "save_markdown", "print_terminal_table",
 ]
+
+from .universe import UniverseSpec, CapBucket, VolTolerance, ALL_UNIVERSES, get_universe, all_tickers
+from .universe import INSTITUTIONAL, EMERGING, SPECULATIVE
+from .opportunity import (
+    OpportunityFactors, OpportunityResult, OpportunityPipeline,
+    OpportunityScorer, compute_opportunity_factors,
+    save_opportunity_csv, save_opportunity_markdown,
+    print_opportunity_table, OPPORTUNITY_WEIGHTS,
+)
